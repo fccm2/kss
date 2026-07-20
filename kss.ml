@@ -1,6 +1,7 @@
 type color_name =
   [ `blue | `blue_dir | `cyan | `dark_grey | `dark_red | `default | `green
-  | `light_cyan | `magenta | `purple | `red | `test | `white | `yellow ]
+  | `light_cyan | `magenta | `purple | `red | `test | `white | `yellow
+  | `green2 | `green1 ]
 
 let color_esc color_name s =
   let col_code = match color_name with
@@ -16,6 +17,9 @@ let color_esc color_name s =
 
   |     `red -> "35;49"
   |   `green -> "32;49"
+  |   `green1 -> "32;49"
+  |   `green2 -> "32;49"
+
   |  `yellow -> "33;49"
   (*
   |    `blue -> "34;49"
@@ -64,15 +68,16 @@ let list_replace_nxn lst d0 d1 repl =
   ) lst
 
 let list_access_n lst n =
+  let ln = List.length lst in
   let rec aux lst d =
-    if d < 0 then invalid_arg "list_access_n" else
+    if d >= ln then invalid_arg "list_access_n" else
     match lst with
     | hd :: _
       when n = d -> hd
-    | _ :: tl -> aux tl (d-1)
+    | _ :: tl -> aux tl (d+1)
     | [] -> failwith "list_access_n"
   in
-  aux lst n
+  aux lst 0
 
 let list_access_nxn lst d0 d1 =
   let lst1 = list_access_n lst d0 in
@@ -152,9 +157,9 @@ let () =
   let board = Lists.replace_n2 board 6 3 (`magenta, '.') in
 
   Lists.print board;
-  let rec run board =
+  let rec run pos board =
     let usr = input_line stdin in
-    if usr = "exit" then exit 0 ;
+    if List.mem usr ["exit"; ""] then exit 0 ;
     (*
     print_endline usr;
     *)
@@ -162,11 +167,34 @@ let () =
     let c1 = String.get usr 1 in
     let c0 = int_of_string (String.make 1 c0) in
     let c1 = int_of_string (String.make 1 c1) in
+    begin if c0 > 7 || c1 > 7 then run None board
+    end;
     Printf.printf "# %d %d\n%!" c0 c1;
-    let board = Lists.replace_n2 board c0 c1 (`green, '/') in
-    Lists.print board;
-    run board
+    match pos with
+    | Some (d0, d1) ->
+        let (color, cb)  = Lists.access_n2 board d0 d1 in
+        let board = Lists.replace_n2 board d0 d1 (`red, '_') in
+        let board = Lists.replace_n2 board c0 c1 (color, cb) in
+        Printf.printf "# req-mv: %d %d -> %d %d\n%!" d0 d1 c0 c1;
+        Lists.print board;
+        run None board
+
+    | None ->
+      let (color, ca)  = Lists.access_n2 board c0 c1 in
+      begin if ca = '_' then run None board
+      end;
+      begin
+        match ca with
+        | 'T' -> Printf.printf "# 0 +1 \n";
+        | 'K' -> Printf.printf "# +2 +1 \n";
+        | _ -> ()
+      end;
+      let green = match color with `magenta -> `green1 | `cyan -> `green2 | _ -> exit 1 in
+      let board = Lists.replace_n2 board c0 c1 (green, ca) in
+      Lists.print board;
+      run (Some (c0, c1)) board
   in
-  run board
+  try run None board
+  with End_of_file -> print_newline ()
 ;;
 
