@@ -173,6 +173,7 @@ let () =
     match pos with
     | Some (d0, d1) ->
         let (color, cb)  = Lists.access_n2 board d0 d1 in
+        let color = match color with `green1 -> `magenta | `green2 -> `cyan | _ -> exit 1 in
         let board = Lists.replace_n2 board d0 d1 (`red, '_') in
         let board = Lists.replace_n2 board c0 c1 (color, cb) in
         Printf.printf "# req-mv: %d %d -> %d %d\n%!" d0 d1 c0 c1;
